@@ -23,16 +23,17 @@ class PolyhedronViewer:
         self.canvas = FigureCanvasTkAgg(self.fig, master=root)
         self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
-        self.label = Label(root, text="Количество случайных кубов:")
+        self.label = Label(root, text="Количество случайных многогранников:")
         self.label.pack(side=tk.LEFT)
-        self.cube_count_entry = Entry(root)
-        self.cube_count_entry.pack(side=tk.LEFT)
+        self.shape_count_entry = Entry(root)
+        self.shape_count_entry.pack(side=tk.LEFT)
 
-        self.sort_button = Button(root, text="Отрисовка", command=self.render_sorted_faces)
+        self.sort_button = Button(root, text="Отрисовать", command=self.render_sorted_faces)
         self.sort_button.pack(side=tk.LEFT)
 
         self.initial_polyhedra = [
-            np.array([[-1, -1, -1], [1, -1, -1], [1, -1, 1], [-1, -1, 1], [-1, 1, -1], [1, 1, -1], [1, 1, 1], [-1, 1, 1]]),
+            np.array(
+                [[-1, -1, -1], [1, -1, -1], [1, -1, 1], [-1, -1, 1], [-1, 1, -1], [1, 1, -1], [1, 1, 1], [-1, 1, 1]]),
             np.array([[0, -2, 0], [1, -2, 0], [1, -2, 1], [0, -2, 1], [0, -3, 0], [1, -3, 0], [1, -3, 1], [0, -3, 1]])
         ]
 
@@ -49,24 +50,62 @@ class PolyhedronViewer:
         center = vertices.mean(axis=0)
         return center[1]
 
-    def generate_random_cubes(self, count):
+    def generate_random_polyhedra(self, count):
         self.polyhedra = []
         self.faces = []
         for _ in range(count):
-            size = random.uniform(0.5, 1.5)
+            shape_type = random.choice(['cube', 'tetrahedron', 'octahedron', 'parallelepiped'])
             x, y, z = random.uniform(-2, 2), random.uniform(-2, 2), random.uniform(-2, 2)
-            cube = np.array([
-                [x - size, y - size, z - size],
-                [x + size, y - size, z - size],
-                [x + size, y - size, z + size],
-                [x - size, y - size, z + size],
-                [x - size, y + size, z - size],
-                [x + size, y + size, z - size],
-                [x + size, y + size, z + size],
-                [x - size, y + size, z + size]
-            ])
-            self.polyhedra.append(cube)
-            self.faces.append([[0, 1, 2, 3], [4, 5, 6, 7], [0, 1, 5, 4], [2, 3, 7, 6], [0, 3, 7, 4], [1, 2, 6, 5]])
+
+            if shape_type == 'cube':
+                size = random.uniform(0.5, 1.5)
+                polyhedron = np.array([
+                    [x - size, y - size, z - size],
+                    [x + size, y - size, z - size],
+                    [x + size, y - size, z + size],
+                    [x - size, y - size, z + size],
+                    [x - size, y + size, z - size],
+                    [x + size, y + size, z - size],
+                    [x + size, y + size, z + size],
+                    [x - size, y + size, z + size]
+                ])
+                faces = [[0, 1, 2, 3], [4, 5, 6, 7], [0, 1, 5, 4], [2, 3, 7, 6], [0, 3, 7, 4], [1, 2, 6, 5]]
+            elif shape_type == 'tetrahedron':
+                size = random.uniform(0.5, 1.5)
+                polyhedron = np.array([
+                    [x, y, z + size],
+                    [x + size, y, z - size],
+                    [x - size, y, z - size],
+                    [x, y + size, z]
+                ])
+                faces = [[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3]]
+            elif shape_type == 'octahedron':
+                size = random.uniform(0.5, 1.5)
+                polyhedron = np.array([
+                    [x, y, z + size],
+                    [x, y, z - size],
+                    [x + size, y, z],
+                    [x - size, y, z],
+                    [x, y + size, z],
+                    [x, y - size, z]
+                ])
+                faces = [[0, 2, 4], [0, 3, 4], [0, 2, 5], [0, 3, 5], [1, 2, 4], [1, 3, 4], [1, 2, 5], [1, 3, 5]]
+            elif shape_type == 'parallelepiped':
+                width, height, depth = random.uniform(0.5, 1.5), random.uniform(0.5, 1.5), random.uniform(0.5, 1.5)
+                polyhedron = np.array([
+                    [x - width, y - height, z - depth],
+                    [x + width, y - height, z - depth],
+                    [x + width, y - height, z + depth],
+                    [x - width, y - height, z + depth],
+                    [x - width, y + height, z - depth],
+                    [x + width, y + height, z - depth],
+                    [x + width, y + height, z + depth],
+                    [x - width, y + height, z + depth]
+                ])
+                faces = [[0, 1, 2, 3], [4, 5, 6, 7], [0, 1, 5, 4], [2, 3, 7, 6], [0, 3, 7, 4], [1, 2, 6, 5]]
+
+            self.polyhedra.append(polyhedron)
+            self.faces.append(faces)
 
     def render_sorted_faces(self):
         self.ax.cla()
@@ -78,11 +117,11 @@ class PolyhedronViewer:
             self.first_run = False
         else:
             try:
-                count = int(self.cube_count_entry.get())
+                count = int(self.shape_count_entry.get())
                 if count > 0:
-                    self.generate_random_cubes(count)
+                    self.generate_random_polyhedra(count)
             except ValueError:
-                print("Введите корректное число кубов")
+                print("Введите корректное число многогранников")
 
         faces_with_depth = []
         for polyhedron, face_set in zip(self.polyhedra, self.faces):
@@ -93,7 +132,7 @@ class PolyhedronViewer:
         faces_with_depth.sort(key=lambda item: item[0], reverse=True)
 
         for y_center, vertices in faces_with_depth:
-            face = Poly3DCollection([vertices], color="grey", edgecolor="k", alpha=1.0)
+            face = Poly3DCollection([vertices], color="skyblue", edgecolor="k", alpha=1.0)
             self.ax.add_collection3d(face)
             self.canvas.draw()
             self.root.update()
@@ -103,6 +142,7 @@ class PolyhedronViewer:
         self.ax.set_ylim([-3, 3])
         self.ax.set_zlim([-3, 3])
         self.canvas.draw()
+
 
 root = tk.Tk()
 app = PolyhedronViewer(root)
